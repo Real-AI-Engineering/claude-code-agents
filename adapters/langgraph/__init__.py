@@ -52,6 +52,10 @@ class LangGraphAdapter:
             "langgraph>=0.0.60",
             "langchain>=0.1.0",
             "langchain-core>=0.1.0",
+            # API server dependencies for generated app.py
+            "fastapi>=0.111.0",
+            "uvicorn>=0.23.0",
+            "pydantic>=2.0.0",
         ])
         
         # Add model-specific requirements based on specs

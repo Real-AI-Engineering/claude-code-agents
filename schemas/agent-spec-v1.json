@@ -4,7 +4,7 @@
   "title": "Agent Specification v1",
   "description": "Schema for defining multi-runtime AI agents",
   "type": "object",
-  "required": ["id", "name", "summary", "role", "model", "version"],
+  "required": ["id", "name", "summary", "role", "model", "ownership", "version"],
   "properties": {
     "id": {
       "type": "string",

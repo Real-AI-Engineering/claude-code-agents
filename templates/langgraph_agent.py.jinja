@@ -20,7 +20,7 @@ from langchain_openai import ChatOpenAI
 {% endif %}
 
 
-class {{ spec.id | replace("-", "_") | title }}Agent:
+class {{ spec.id | replace('-', ' ') | title | replace(' ', '') }}Agent:
     """{{ spec.name }} LangGraph Agent"""
     
     def __init__(self):
@@ -190,7 +190,7 @@ Response Length: Keep responses under {{ spec.constraints.max_tokens }} tokens.
 # Factory function for easy instantiation
 def create_{{ spec.id | replace("-", "_") }}_agent():
     """Create and return a {{ spec.name }} agent instance."""
-    return {{ spec.id | replace("-", "_") | title }}Agent()
+    return {{ spec.id | replace('-', ' ') | title | replace(' ', '') }}Agent()
 
 
 # Example usage
