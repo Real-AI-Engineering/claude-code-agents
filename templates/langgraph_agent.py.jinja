@@ -1,0 +1,202 @@
+"""
+{{ spec.name }} - Generated LangGraph Agent
+{{ spec.summary }}
+
+Generated from {{ spec.id }}.yaml v{{ spec.version }}
+Owner: {{ spec.ownership.team | default(spec.ownership.owner) }}
+"""
+
+from typing import Dict, Any, List
+from langgraph.prebuilt import create_react_agent
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate
+
+{% if spec.model.provider == "anthropic" %}
+from langchain_anthropic import ChatAnthropic
+{% elif spec.model.provider == "openai" %}
+from langchain_openai import ChatOpenAI
+{% else %}
+# Add appropriate model import for {{ spec.model.provider }}
+{% endif %}
+
+
+class {{ spec.id | replace("-", "_") | title }}Agent:
+    """{{ spec.name }} LangGraph Agent"""
+    
+    def __init__(self):
+        self.agent_id = "{{ spec.id }}"
+        self.name = "{{ spec.name }}"
+        self.description = "{{ spec.summary }}"
+        
+        # Model configuration
+        self.model_config = {
+            "provider": "{{ spec.model.provider }}",
+            "family": "{{ spec.model.family }}",
+            "tier": "{{ spec.model.tier }}"
+        }
+        
+        # Initialize model
+        self.model = self._initialize_model()
+        
+        # Initialize tools
+        self.tools = self._initialize_tools()
+        
+        # Create the agent
+        self.agent = self._create_agent()
+    
+    def _initialize_model(self):
+        """Initialize the language model based on configuration."""
+        {% if spec.model.provider == "anthropic" %}
+        model_name = self._get_anthropic_model_name("{{ spec.model.tier }}")
+        return ChatAnthropic(
+            model=model_name,
+            {% if spec.model.params %}
+            {% if spec.model.params.temperature %}temperature={{ spec.model.params.temperature }},{% endif %}
+            {% if spec.model.params.max_tokens %}max_tokens={{ spec.model.params.max_tokens }},{% endif %}
+            {% endif %}
+        )
+        {% elif spec.model.provider == "openai" %}
+        model_name = self._get_openai_model_name("{{ spec.model.tier }}")
+        return ChatOpenAI(
+            model=model_name,
+            {% if spec.model.params %}
+            {% if spec.model.params.temperature %}temperature={{ spec.model.params.temperature }},{% endif %}
+            {% if spec.model.params.max_tokens %}max_tokens={{ spec.model.params.max_tokens }},{% endif %}
+            {% endif %}
+        )
+        {% else %}
+        # TODO: Implement model initialization for {{ spec.model.provider }}
+        raise NotImplementedError(f"Model provider {{ spec.model.provider }} not yet supported")
+        {% endif %}
+    
+    def _get_anthropic_model_name(self, tier: str) -> str:
+        """Map tier to Anthropic model name."""
+        tier_mapping = {
+            "haiku": "claude-3-haiku-20240307",
+            "sonnet": "claude-3-5-sonnet-20241022",
+            "opus": "claude-3-opus-20240229"
+        }
+        return tier_mapping.get(tier, "claude-3-5-sonnet-20241022")
+    
+    def _get_openai_model_name(self, tier: str) -> str:
+        """Map tier to OpenAI model name."""
+        tier_mapping = {
+            "gpt-3.5": "gpt-3.5-turbo",
+            "gpt-4": "gpt-4",
+            "gpt-4o": "gpt-4o"
+        }
+        return tier_mapping.get(tier, "gpt-4")
+    
+    def _initialize_tools(self) -> List:
+        """Initialize tools for the agent."""
+        tools = []
+        {% if spec.tools %}
+        # TODO: Implement tool initialization
+        # Available tools: {% for tool in spec.tools %}{{ tool.id }}{% if not loop.last %}, {% endif %}{% endfor %}
+        
+        {% for tool in spec.tools %}
+        # {{ tool.id }}: {{ tool.description | default("No description") }}
+        # Type: {{ tool.type }}
+        {% if tool.spec %}# Spec: {{ tool.spec }}{% endif %}
+        
+        {% endfor %}
+        {% endif %}
+        return tools
+    
+    def _create_agent(self):
+        """Create the LangGraph agent."""
+        system_prompt = """{{ spec.role | replace('"', '\\"') }}
+
+{% if spec.constraints and spec.constraints.pii_policy %}
+Privacy Policy: Follow {{ spec.constraints.pii_policy | replace("_", " ") }} policy for PII handling.
+{% endif %}
+
+{% if spec.constraints and spec.constraints.max_tokens %}
+Response Length: Keep responses under {{ spec.constraints.max_tokens }} tokens.
+{% endif %}
+"""
+        
+        return create_react_agent(
+            model=self.model,
+            tools=self.tools,
+            state_modifier=system_prompt
+        )
+    
+    def invoke(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Invoke the agent with input data."""
+        try:
+            # Extract message from input
+            if isinstance(input_data, str):
+                message = input_data
+            elif isinstance(input_data, dict) and 'message' in input_data:
+                message = input_data['message']
+            else:
+                message = str(input_data)
+            
+            # Invoke the agent
+            result = self.agent.invoke({
+                "messages": [HumanMessage(content=message)]
+            })
+            
+            return {
+                "success": True,
+                "response": result["messages"][-1].content,
+                "agent_id": self.agent_id,
+                "metadata": {
+                    "model": self.model_config,
+                    "version": "{{ spec.version }}"
+                }
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "agent_id": self.agent_id
+            }
+    
+    async def ainvoke(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Asynchronously invoke the agent."""
+        try:
+            if isinstance(input_data, str):
+                message = input_data
+            elif isinstance(input_data, dict) and 'message' in input_data:
+                message = input_data['message']
+            else:
+                message = str(input_data)
+            
+            result = await self.agent.ainvoke({
+                "messages": [HumanMessage(content=message)]
+            })
+            
+            return {
+                "success": True,
+                "response": result["messages"][-1].content,
+                "agent_id": self.agent_id,
+                "metadata": {
+                    "model": self.model_config,
+                    "version": "{{ spec.version }}"
+                }
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "agent_id": self.agent_id
+            }
+
+
+# Factory function for easy instantiation
+def create_{{ spec.id | replace("-", "_") }}_agent():
+    """Create and return a {{ spec.name }} agent instance."""
+    return {{ spec.id | replace("-", "_") | title }}Agent()
+
+
+# Example usage
+if __name__ == "__main__":
+    agent = create_{{ spec.id | replace("-", "_") }}_agent()
+    
+    # Test invocation
+    result = agent.invoke("Hello, can you help me with {{ spec.name | lower }} tasks?")
+    print(f"Agent: {result}")

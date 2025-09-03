@@ -1,0 +1,292 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/your-org/agents-repo/schemas/agent-spec-v1.json",
+  "title": "Agent Specification v1",
+  "description": "Schema for defining multi-runtime AI agents",
+  "type": "object",
+  "required": ["id", "name", "summary", "role", "model", "version"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+      "description": "Unique agent identifier in kebab-case"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Human-readable agent name"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500,
+      "description": "Brief description of agent's purpose and capabilities"
+    },
+    "role": {
+      "type": "string",
+      "minLength": 50,
+      "description": "System prompt defining agent's behavior and expertise"
+    },
+    "invocation": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["auto", "explicit"],
+          "description": "How the agent should be invoked"
+        },
+        "triggers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Keywords or phrases that trigger this agent"
+        }
+      },
+      "additionalProperties": false
+    },
+    "model": {
+      "type": "object",
+      "required": ["provider", "family", "tier"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["anthropic", "openai", "azure", "local"],
+          "description": "Model provider"
+        },
+        "family": {
+          "type": "string",
+          "enum": ["claude", "gpt", "gemini", "llama", "custom"],
+          "description": "Model family"
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["haiku", "sonnet", "opus", "gpt-3.5", "gpt-4", "gpt-4o", "custom"],
+          "description": "Model tier/variant"
+        },
+        "params": {
+          "type": "object",
+          "properties": {
+            "temperature": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 2.0
+            },
+            "max_tokens": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200000
+            },
+            "top_p": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$",
+            "description": "Tool identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["mcp", "http", "builtin", "custom"],
+            "description": "Tool integration type"
+          },
+          "spec": {
+            "type": "string",
+            "description": "Path to tool specification file"
+          },
+          "description": {
+            "type": "string",
+            "description": "Tool purpose and usage"
+          },
+          "required": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether this tool is required for agent function"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "io": {
+      "type": "object",
+      "properties": {
+        "input_schema": {
+          "type": "string",
+          "description": "Path to input JSON schema"
+        },
+        "output_schema": {
+          "type": "string",
+          "description": "Path to output JSON schema"
+        }
+      },
+      "additionalProperties": false
+    },
+    "memory": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["ephemeral", "persistent", "hybrid"],
+          "default": "ephemeral",
+          "description": "Memory persistence strategy"
+        },
+        "vector_index": {
+          "type": "string",
+          "description": "Vector database index name"
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365,
+          "description": "Memory retention period in days"
+        }
+      },
+      "additionalProperties": false
+    },
+    "constraints": {
+      "type": "object",
+      "properties": {
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 200000,
+          "description": "Maximum tokens per request"
+        },
+        "cost_budget_usd": {
+          "type": "number",
+          "minimum": 0.01,
+          "description": "Daily cost budget in USD"
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 3600,
+          "description": "Request timeout in seconds"
+        },
+        "pii_policy": {
+          "type": "string",
+          "enum": ["allow", "mask", "forbid_raw_pii"],
+          "default": "mask",
+          "description": "PII handling policy"
+        }
+      },
+      "additionalProperties": false
+    },
+    "observability": {
+      "type": "object",
+      "properties": {
+        "log_level": {
+          "type": "string",
+          "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
+          "default": "INFO",
+          "description": "Logging level"
+        },
+        "trace": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable distributed tracing"
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Custom metrics to track"
+        }
+      },
+      "additionalProperties": false
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "acceptance": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 10
+          },
+          "description": "Acceptance criteria for agent performance"
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "task"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9_]+$"
+              },
+              "task": {
+                "type": "string",
+                "description": "Path to test task definition"
+              },
+              "expected_score": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "ownership": {
+      "type": "object",
+      "required": ["owner"],
+      "properties": {
+        "owner": {
+          "type": "string",
+          "format": "email",
+          "description": "Owner email address"
+        },
+        "team": {
+          "type": "string",
+          "description": "Owning team name"
+        },
+        "sla_hours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 168,
+          "description": "SLA response time in hours"
+        },
+        "on_call": {
+          "type": "string",
+          "description": "On-call contact information"
+        }
+      },
+      "additionalProperties": false
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9-]+)?$",
+      "description": "Semantic version"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      },
+      "description": "Tags for categorization and discovery"
+    }
+  },
+  "additionalProperties": false
+}

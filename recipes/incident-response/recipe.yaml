@@ -1,0 +1,82 @@
+id: incident-response
+name: Production Incident Response
+summary: Structured incident response workflow for production outages and critical issues.
+
+graph:
+  - stage: triage
+    sequence:
+      - agent: incident-responder
+        input:
+          alert_data: "{{ inputs.incident_details }}"
+          severity: "{{ inputs.severity }}"
+        timeout: 60
+
+  - stage: investigation
+    condition: "{{ stage.triage.incident-responder.severity in ['P0', 'P1'] }}"
+    parallel:
+      - agent: incident-responder
+        input:
+          investigation_mode: "logs_analysis"
+          timerange: "{{ inputs.timerange }}"
+        timeout: 180
+      - agent: security-auditor
+        input:
+          security_check: true
+          incident_data: "{{ stage.triage.incident-responder.output }}"
+        timeout: 120
+
+  - stage: mitigation
+    sequence:
+      - agent: incident-responder
+        input:
+          mitigation_mode: true
+          investigation_results: "{{ stage.investigation }}"
+        timeout: 300
+
+  - stage: communication
+    parallel:
+      - agent: incident-responder
+        input:
+          communication_mode: "status_update"
+          status: "{{ stage.mitigation.incident-responder.status }}"
+        timeout: 60
+      - agent: business-analyst
+        input:
+          impact_assessment: true
+          incident_data: "{{ stage.mitigation.incident-responder.output }}"
+        timeout: 120
+
+  - stage: post_mortem
+    condition: "{{ stage.mitigation.incident-responder.resolved == true }}"
+    sequence:
+      - agent: incident-responder
+        input:
+          post_mortem_mode: true
+          timeline: "{{ stages.*.timestamp }}"
+          actions_taken: "{{ stages.*.actions }}"
+        timeout: 600
+
+inputs:
+  incident_details:
+    type: object
+    description: "Alert or incident details from monitoring systems"
+    required: true
+  severity:
+    type: string  
+    enum: ["P0", "P1", "P2", "P3"]
+    description: "Initial severity assessment"
+    required: true
+  timerange:
+    type: string
+    description: "Time range for log analysis (e.g., '2h', '30m')"
+    default: "1h"
+
+outputs:
+  - artifacts/incident_timeline.md
+  - artifacts/mitigation_actions.md
+  - artifacts/communication_log.md
+  - artifacts/post_mortem_report.md
+  - artifacts/action_items.md
+
+version: 1.0.0
+tags: [incident, response, operations, sre]

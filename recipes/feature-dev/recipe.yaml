@@ -1,0 +1,64 @@
+id: feature-development
+name: Complete Feature Development Workflow
+summary: End-to-end feature development workflow with architecture review, implementation, testing, and security audit.
+
+graph:
+  - stage: planning
+    sequence:
+      - agent: business-analyst
+        input:
+          requirements: "{{ inputs.feature_requirements }}"
+        timeout: 300
+      - agent: backend-architect
+        input:
+          requirements: "{{ stage.planning.business-analyst.output }}"
+        timeout: 600
+
+  - stage: security_review
+    sequence:
+      - agent: security-auditor
+        input:
+          architecture: "{{ stage.planning.backend-architect.output }}"
+        timeout: 300
+
+  - stage: implementation
+    condition: "{{ stage.security_review.security-auditor.risk_level != 'critical' }}"
+    parallel:
+      - agent: docs-architect
+        input:
+          specifications: "{{ stage.planning.business-analyst.output }}"
+          architecture: "{{ stage.planning.backend-architect.output }}"
+        timeout: 400
+      - agent: test-automator
+        input:
+          specifications: "{{ stage.planning.business-analyst.output }}"
+          architecture: "{{ stage.planning.backend-architect.output }}"
+        timeout: 500
+
+  - stage: final_review
+    sequence:
+      - agent: security-auditor
+        input:
+          implementation_docs: "{{ stage.implementation.docs-architect.output }}"
+          test_strategy: "{{ stage.implementation.test-automator.output }}"
+        timeout: 200
+
+inputs:
+  feature_requirements:
+    type: string
+    description: "Detailed feature requirements and business context"
+    required: true
+  priority:
+    type: string
+    enum: ["low", "medium", "high", "critical"]
+    default: "medium"
+
+outputs:
+  - artifacts/feature_specification.md
+  - artifacts/architecture_design.md  
+  - artifacts/security_report.md
+  - artifacts/test_strategy.md
+  - artifacts/implementation_docs.md
+
+version: 1.0.0
+tags: [development, feature, workflow, security]

@@ -1,0 +1,92 @@
+# Agent Template v1.0
+# Copy this file and customize for your agent
+
+id: my-agent-id                    # Required: kebab-case identifier
+name: My Agent Name                # Required: human-readable name
+summary: Brief description of what this agent does and its main capabilities. # Required: 10-500 chars
+
+# Required: Detailed system prompt defining the agent's role, expertise, and behavior
+role: |
+  You are an expert [DOMAIN] specialist with [X] years of experience in [SPECIFIC_AREA].
+  
+  Your expertise includes:
+  - [Key capability 1]
+  - [Key capability 2]
+  - [Key capability 3]
+  
+  When [WORKING ON TASKS]:
+  1. [Step or principle 1]
+  2. [Step or principle 2]
+  3. [Step or principle 3]
+  
+  Always provide [EXPECTED_OUTPUT_STYLE] with [SPECIFIC_REQUIREMENTS].
+
+# Optional: How the agent should be invoked
+invocation:
+  mode: explicit                   # auto | explicit
+  triggers:                        # Keywords that trigger this agent
+    - "keyword1"
+    - "keyword2"
+
+# Required: Model configuration
+model:
+  provider: anthropic              # anthropic | openai | azure | local
+  family: claude                   # claude | gpt | gemini | llama | custom
+  tier: sonnet                     # haiku | sonnet | opus | gpt-3.5 | gpt-4 | gpt-4o | custom
+  params:                          # Optional model parameters
+    temperature: 0.3
+    max_tokens: 3000
+
+# Optional: Tools the agent can use
+tools:
+  - id: tool_name
+    type: mcp                      # mcp | http | builtin | custom
+    spec: tools/path/to/spec.yaml  # Path to tool specification
+    description: What this tool does
+    required: false                # Whether tool is required for agent function
+
+# Optional: Input/output schemas
+io:
+  input_schema: schemas/my_agent_input.json    # Path to input JSON schema
+  output_schema: schemas/my_agent_output.json  # Path to output JSON schema
+
+# Optional: Memory configuration
+memory:
+  mode: ephemeral                  # ephemeral | persistent | hybrid
+  retention_days: 7                # For persistent memory
+
+# Optional: Constraints
+constraints:
+  max_tokens: 3000
+  cost_budget_usd: 1.00
+  timeout_seconds: 90
+  pii_policy: mask                 # allow | mask | forbid_raw_pii
+
+# Optional: Observability settings
+observability:
+  log_level: INFO                  # DEBUG | INFO | WARNING | ERROR
+  trace: false
+  metrics:                         # Custom metrics to track
+    - "custom_metric_1"
+
+# Optional: Evaluation criteria
+evaluation:
+  acceptance:                      # List of acceptance criteria
+    - "Criterion 1"
+    - "Criterion 2"
+  tests:                          # Test cases
+    - id: test_case_1
+      task: evaluations/tasks/test_case.yaml
+      expected_score: 0.8
+
+# Required: Ownership information
+ownership:
+  owner: team@company.com          # Owner email
+  team: Team Name                  # Team name
+  sla_hours: 24                    # SLA in hours
+
+# Required: Semantic version
+version: 1.0.0
+
+# Optional: Tags for categorization
+tags: [category1, category2, capability]

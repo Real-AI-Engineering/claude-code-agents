@@ -1,0 +1,55 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ['--multi']
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: detect-private-key
+      
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+        
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.32.0
+    hooks:
+      - id: yamllint
+        args: [-c=.yamllint.yml]
+        
+  - repo: https://github.com/PyCQA/bandit
+    rev: '1.7.5'
+    hooks:
+      - id: bandit
+        args: ['-r', 'scripts/', 'adapters/']
+        exclude: tests/
+        
+  - repo: local
+    hooks:
+      - id: validate-agents
+        name: Validate Agent Specifications
+        entry: python -m scripts.cli validate agents/
+        language: python
+        pass_filenames: false
+        files: ^agents/.*\.yaml$
+        
+      - id: validate-recipes
+        name: Validate Recipe Specifications
+        entry: python -m scripts.cli validate recipes/
+        language: python
+        pass_filenames: false
+        files: ^recipes/.*\.yaml$
+        
+      - id: no-secrets
+        name: Check for hardcoded secrets
+        entry: sh -c 'if grep -r -E "(api_key|secret_key|password|token)" --include="*.yaml" --include="*.py" .; then echo "Potential secrets found!"; exit 1; fi'
+        language: system
+        pass_filenames: false

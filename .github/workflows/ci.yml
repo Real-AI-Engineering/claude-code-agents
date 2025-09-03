@@ -1,0 +1,251 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  lint-and-validate:
+    name: Lint and Validate
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+        
+    - name: Lint with ruff
+      run: |
+        ruff check .
+        ruff format --check .
+        
+    - name: Check with mypy
+      run: |
+        # Install mypy types if needed
+        pip install mypy types-PyYAML
+        mypy scripts/ adapters/ --ignore-missing-imports
+        
+    - name: Lint YAML files
+      run: |
+        yamllint agents/ recipes/ schemas/ -c .yamllint.yml
+        
+    - name: Validate agent specifications
+      run: |
+        python -m scripts.cli validate agents/
+        
+    - name: Validate recipe specifications  
+      run: |
+        python -m scripts.cli validate recipes/
+        
+    - name: Check for secrets
+      run: |
+        # Simple secret detection - in production use something like truffleHog
+        ! grep -r -E "(api_key|secret_key|password|token)" --include="*.yaml" --include="*.py" . || (echo "Potential secrets found!" && exit 1)
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint-and-validate
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+        
+    - name: Run tests with coverage
+      run: |
+        pytest --cov=scripts --cov=adapters --cov-report=xml --cov-report=term-missing
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+        
+    - name: Test Claude adapter rendering
+      run: |
+        python -m scripts.cli render claude --output-dir /tmp/claude-output
+        ls -la /tmp/claude-output/
+        
+    - name: Test LangGraph adapter rendering
+      run: |
+        python -m scripts.cli render langgraph --output-dir /tmp/langgraph-output
+        ls -la /tmp/langgraph-output/
+        
+    - name: Verify generated files
+      run: |
+        # Check that Claude markdown files are valid
+        find /tmp/claude-output -name "*.md" -exec head -5 {} \;
+        
+        # Check that LangGraph Python files are syntactically correct
+        find /tmp/langgraph-output -name "*.py" -exec python -m py_compile {} \;
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: lint-and-validate
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install security tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety
+        
+    - name: Run Bandit security scan
+      run: |
+        bandit -r scripts/ adapters/ -f json -o bandit-report.json
+        bandit -r scripts/ adapters/
+        
+    - name: Check dependencies for vulnerabilities
+      run: |
+        pip freeze | safety check --stdin
+        
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: bandit-report.json
+
+  build-docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+        
+    - name: Generate agent catalog
+      run: |
+        python -m scripts.cli list-agents > docs/AGENT_CATALOG.md
+        
+    - name: Validate documentation links
+      run: |
+        # Check that all referenced files exist
+        find docs/ -name "*.md" -exec grep -l "\.md" {} \; | xargs -I {} python -c "
+        import re
+        import sys
+        from pathlib import Path
+        
+        file = Path(sys.argv[1])
+        content = file.read_text()
+        
+        # Find markdown links
+        links = re.findall(r'\[.*?\]\((.*?\.md)\)', content)
+        
+        for link in links:
+            if not link.startswith('http'):
+                link_path = file.parent / link
+                if not link_path.exists():
+                    print(f'Broken link in {file}: {link}')
+                    sys.exit(1)
+        " {}
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [test, integration-test, security, build-docs]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+        
+    - name: Generate changelog
+      run: |
+        # Simple changelog generation
+        echo "# Changelog" > CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "## $(date +'%Y-%m-%d')" >> CHANGELOG.md
+        git log --oneline --since="1 week ago" >> CHANGELOG.md
+        
+    - name: Create tag
+      run: |
+        VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
+        git tag -a "v${VERSION}" -m "Release v${VERSION}"
+        git push origin "v${VERSION}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

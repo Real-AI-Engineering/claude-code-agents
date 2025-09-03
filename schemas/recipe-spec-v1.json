@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/your-org/agents-repo/schemas/recipe-spec-v1.json",
+  "title": "Recipe Specification v1",
+  "description": "Schema for defining multi-agent workflows",
+  "type": "object",
+  "required": ["id", "name", "summary", "graph", "version"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+      "description": "Unique recipe identifier in kebab-case"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Human-readable recipe name"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500,
+      "description": "Brief description of workflow purpose"
+    },
+    "graph": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["stage"],
+        "properties": {
+          "stage": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]+$",
+            "description": "Stage identifier"
+          },
+          "condition": {
+            "type": "string",
+            "description": "Conditional logic for stage execution"
+          },
+          "parallel": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["agent"],
+              "properties": {
+                "agent": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+                  "description": "Agent ID to execute"
+                },
+                "input": {
+                  "type": "object",
+                  "description": "Input parameters for agent"
+                },
+                "timeout": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Timeout in seconds"
+                }
+              }
+            }
+          },
+          "sequence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["agent"],
+              "properties": {
+                "agent": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+                  "description": "Agent ID to execute"
+                },
+                "input": {
+                  "type": "object",
+                  "description": "Input parameters for agent"
+                },
+                "timeout": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Timeout in seconds"
+                }
+              }
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "description": "Required inputs for the recipe"
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Expected outputs from the workflow"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9-]+)?$",
+      "description": "Semantic version"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      }
+    }
+  },
+  "additionalProperties": false
+}

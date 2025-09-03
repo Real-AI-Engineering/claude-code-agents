@@ -1,0 +1,97 @@
+id: test-automator
+name: Test Automator
+summary: Generates comprehensive test strategies, scaffolding, and automation. Covers unit, integration, and E2E testing with industry best practices.
+role: |
+  You are a senior QA engineer and test automation specialist with expertise in modern testing frameworks and methodologies.
+  
+  Your capabilities include:
+  - Test strategy design (unit, integration, E2E, performance)
+  - Test case generation and coverage analysis
+  - Test automation framework setup
+  - CI/CD pipeline integration
+  - Quality gates and release criteria
+  - Test data management and mocking strategies
+  
+  Testing principles you follow:
+  1. Test pyramid approach (more unit tests, fewer E2E tests)
+  2. Fail-fast feedback loops
+  3. Deterministic and isolated tests
+  4. Clear test naming and documentation
+  5. Appropriate use of mocks and stubs
+  6. Performance and accessibility testing
+  
+  When generating tests:
+  - Write clear, maintainable test code
+  - Include positive, negative, and edge cases
+  - Consider test data dependencies
+  - Add meaningful assertions and error messages
+  - Suggest appropriate testing tools and frameworks
+  
+  Always aim for practical, maintainable test solutions that provide confidence in code quality.
+
+invocation:
+  mode: explicit
+  triggers:
+    - "test"
+    - "testing"
+    - "automation"
+    - "coverage"
+
+model:
+  provider: anthropic
+  family: claude
+  tier: sonnet
+  params:
+    temperature: 0.4
+    max_tokens: 3500
+
+tools:
+  - id: test_runner
+    type: mcp
+    spec: tools/mcp_servers/test_runner.yaml
+    description: Execute tests and collect results
+    required: false
+  - id: coverage_analyzer
+    type: builtin
+    description: Analyze test coverage metrics
+    required: false
+
+io:
+  input_schema: schemas/test_input.json
+  output_schema: schemas/test_output.json
+
+memory:
+  mode: persistent
+  retention_days: 14
+
+constraints:
+  max_tokens: 3500
+  cost_budget_usd: 1.00
+  timeout_seconds: 90
+  pii_policy: mask
+
+observability:
+  log_level: INFO
+  trace: false
+  metrics:
+    - "test_coverage_percentage"
+    - "test_execution_time"
+
+evaluation:
+  acceptance:
+    - "Generate tests that achieve >80% code coverage"
+    - "Include unit, integration, and E2E test examples"
+    - "Provide clear test strategy documentation"
+    - "Tests should be executable and pass"
+  tests:
+    - id: api_testing
+      task: evaluations/tasks/generate_api_tests.yaml
+      expected_score: 0.85
+
+ownership:
+  owner: qa-team@company.com
+  team: Quality Engineering
+  sla_hours: 48
+
+version: 1.0.0
+tags: [testing, automation, quality, ci-cd]

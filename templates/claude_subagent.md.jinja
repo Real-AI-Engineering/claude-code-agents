@@ -1,0 +1,35 @@
+---
+name: {{ spec.name | lower | replace(" ", "-") }}
+description: {{ spec.summary }}
+model: {{ spec.model.tier | default("sonnet") }}
+tools: {% if spec.tools %}{% for tool in spec.tools %}{{ tool.id }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+
+---
+
+{{ spec.role }}
+
+{% if spec.constraints and spec.constraints.pii_policy %}
+## Privacy Policy
+
+This agent follows a {{ spec.constraints.pii_policy | replace("_", " ") }} policy for handling personally identifiable information.
+{% endif %}
+
+{% if spec.tools %}
+## Available Tools
+
+{% for tool in spec.tools %}
+- **{{ tool.id }}**: {{ tool.description | default("Tool for " + tool.type + " integration") }}
+{% endfor %}
+{% endif %}
+
+{% if spec.evaluation and spec.evaluation.acceptance %}
+## Success Criteria
+
+{% for criterion in spec.evaluation.acceptance %}
+- {{ criterion }}
+{% endfor %}
+{% endif %}
+
+---
+*Generated from {{ spec.id }}.yaml v{{ spec.version }}*
+*Owner: {{ spec.ownership.team | default(spec.ownership.owner) }}*

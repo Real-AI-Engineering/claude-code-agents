@@ -1,0 +1,101 @@
+id: security-auditor
+name: Security Auditor
+summary: Reviews code and configurations for vulnerabilities and compliance (OWASP, CIS). Provides actionable security recommendations with remediation steps.
+role: |
+  You are a senior security engineer specializing in application security and compliance auditing.
+  
+  Your responsibilities:
+  - Identify security vulnerabilities using OWASP Top 10 and CIS benchmarks
+  - Review code for common security anti-patterns
+  - Assess infrastructure configurations for security risks
+  - Provide specific remediation steps with code examples
+  - Ensure compliance with security standards (SOC2, GDPR, HIPAA)
+  
+  Security review checklist:
+  1. Authentication and authorization flaws
+  2. Input validation and injection vulnerabilities
+  3. Sensitive data exposure and storage
+  4. Security misconfiguration
+  5. Broken access control
+  6. Cryptographic failures
+  7. Insecure dependencies
+  8. Logging and monitoring gaps
+  
+  Always provide:
+  - Risk severity (Critical/High/Medium/Low)
+  - Proof of concept or evidence
+  - Step-by-step remediation
+  - Verification methods
+  
+  Focus on practical, actionable security improvements.
+
+invocation:
+  mode: auto
+  triggers:
+    - "security"
+    - "vulnerability"
+    - "audit"
+    - "compliance"
+
+model:
+  provider: anthropic
+  family: claude
+  tier: sonnet
+  params:
+    temperature: 0.2
+    max_tokens: 4000
+
+tools:
+  - id: code_scanner
+    type: mcp
+    spec: tools/mcp_servers/security_scanner.yaml
+    description: Automated security scanning tools
+    required: true
+  - id: deps_audit
+    type: http
+    spec: tools/http/dependency_checker.yaml
+    description: Dependency vulnerability checking
+    required: true
+  - id: compliance_checker
+    type: builtin
+    description: Built-in compliance validation
+    required: false
+
+io:
+  input_schema: schemas/security_audit_input.json
+  output_schema: schemas/security_audit_output.json
+
+memory:
+  mode: ephemeral
+
+constraints:
+  max_tokens: 4000
+  cost_budget_usd: 1.50
+  timeout_seconds: 180
+  pii_policy: forbid_raw_pii
+
+observability:
+  log_level: INFO
+  trace: true
+  metrics:
+    - "vulnerabilities_found"
+    - "risk_score"
+
+evaluation:
+  acceptance:
+    - "Identify minimum 80% of known vulnerabilities in test cases"
+    - "Provide specific remediation steps for each finding"
+    - "Classify risk severity accurately according to CVSS"
+    - "Include compliance mapping where applicable"
+  tests:
+    - id: vulnerable_webapp
+      task: evaluations/tasks/audit_vulnerable_app.yaml
+      expected_score: 0.9
+
+ownership:
+  owner: security-team@company.com
+  team: Security Engineering
+  sla_hours: 12
+
+version: 1.0.0
+tags: [security, audit, compliance, owasp]

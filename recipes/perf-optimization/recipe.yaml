@@ -1,0 +1,102 @@
+id: performance-optimization
+name: System Performance Optimization
+summary: Comprehensive performance analysis and optimization workflow for backend systems.
+
+graph:
+  - stage: baseline
+    parallel:
+      - agent: backend-architect
+        input:
+          analysis_mode: "performance_baseline"
+          system_specs: "{{ inputs.system_description }}"
+        timeout: 300
+      - agent: data-engineer
+        input:
+          performance_metrics: "{{ inputs.performance_data }}"
+          analysis_type: "bottleneck_identification"
+        timeout: 400
+
+  - stage: analysis
+    sequence:
+      - agent: backend-architect
+        input:
+          baseline_results: "{{ stage.baseline.backend-architect.output }}"
+          metrics_analysis: "{{ stage.baseline.data-engineer.output }}"
+          optimization_focus: "{{ inputs.focus_areas }}"
+        timeout: 600
+
+  - stage: recommendations
+    parallel:
+      - agent: backend-architect
+        input:
+          optimization_recommendations: true
+          analysis_results: "{{ stage.analysis.backend-architect.output }}"
+        timeout: 400
+      - agent: data-engineer
+        input:
+          data_optimization: true
+          performance_issues: "{{ stage.analysis.backend-architect.output }}"
+        timeout: 350
+
+  - stage: testing_strategy  
+    sequence:
+      - agent: test-automator
+        input:
+          performance_testing: true
+          optimization_plan: "{{ stage.recommendations }}"
+        timeout: 450
+
+  - stage: security_review
+    sequence:
+      - agent: security-auditor
+        input:
+          security_impact: true
+          optimization_changes: "{{ stage.recommendations }}"
+        timeout: 240
+
+  - stage: documentation
+    parallel:
+      - agent: docs-architect
+        input:
+          optimization_guide: true
+          recommendations: "{{ stage.recommendations }}"
+          test_strategy: "{{ stage.testing_strategy.test-automator.output }}"
+        timeout: 300
+      - agent: docs-architect
+        input:
+          monitoring_guide: true
+          performance_metrics: "{{ stage.baseline.data-engineer.output }}"
+        timeout: 200
+
+inputs:
+  system_description:
+    type: string
+    description: "Description of the system to optimize"
+    required: true
+  performance_data:
+    type: object
+    description: "Current performance metrics and profiling data"
+    required: true
+  focus_areas:
+    type: array
+    items:
+      type: string
+      enum: ["latency", "throughput", "memory", "cpu", "database", "network"]
+    description: "Areas to focus optimization efforts"
+    default: ["latency", "throughput"]
+  target_improvement:
+    type: string
+    description: "Target performance improvement (e.g., '50% latency reduction')"
+    required: false
+
+outputs:
+  - artifacts/performance_baseline.md
+  - artifacts/bottleneck_analysis.md
+  - artifacts/optimization_recommendations.md
+  - artifacts/performance_test_strategy.md
+  - artifacts/security_impact_assessment.md
+  - artifacts/optimization_implementation_guide.md
+  - artifacts/monitoring_and_alerting_guide.md
+
+version: 1.0.0
+tags: [performance, optimization, backend, monitoring]
